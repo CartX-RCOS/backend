@@ -55,6 +55,26 @@ async function fetchDistance(startCoords, endCoords) {
   
 }
 
+//Based on given store, performs API call to find its nearest locations within set radius
+async function fetchNearbyStores(store, userLocation) {
+  let response;
+  const radius = 24000;   //Radius search is limited to.
+
+  try {
+    response = await fetch(`https://dev.virtualearth.net/REST/v1/LocalSearch/?query=${store}&userLocation=${userLocation[0]}
+    ,${userLocation[1]}&ucmv=${userLocation[0]},${userLocation[1]},${radius}
+    &key=Ag46A1RC8faoCPh9La1fZF7uxL6IAmQETCrErkWSqvBNWyH_BUkZC2nI2F2JIKEW`);
+  } catch(e) {
+    console.log("Error: ", e);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Network response was not ok (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data;
+}
 
 router.get(`/${parsed.name}`, async (req, res) => {
   const location = "1761 15th St, Troy, NY 12180";
