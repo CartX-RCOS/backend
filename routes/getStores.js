@@ -76,6 +76,14 @@ async function fetchNearbyStores(store, userLocation) {
   return data;
 }
 
+// Iterates and finds all approved stores in parallel
+async function searchNearbyStores(userLocation, stores) {
+  const promises = queries.map(query =>
+    fetchNearbyStores(query, userLocaiton)
+  );
+}
+
+
 router.get(`/${parsed.name}`, async (req, res) => {
   const location = "1761 15th St, Troy, NY 12180";
   const coordinates = fetchCoordinates(location);
