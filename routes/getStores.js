@@ -58,17 +58,15 @@ async function fetchDistance(startCoords, endCoords) {
 //Based on given store, performs API call to find its nearest locations within set radius
 async function fetchNearbyStores(store, userLocation) {
   let response;
-  const radius = 24000;   //Radius search is limited to.
-
   try {
     response = await fetch(`https://dev.virtualearth.net/REST/v1/LocalSearch/?query=${store}&userLocation=${userLocation[0]}
-    ,${userLocation[1]}&ucmv=${userLocation[0]},${userLocation[1]},${radius}
-    &key=Ag46A1RC8faoCPh9La1fZF7uxL6IAmQETCrErkWSqvBNWyH_BUkZC2nI2F2JIKEW`);
+    ,${userLocation[1]}&maxResults=3&key=Ag46A1RC8faoCPh9La1fZF7uxL6IAmQETCrErkWSqvBNWyH_BUkZC2nI2F2JIKEW`);
   } catch(e) {
     console.log("Error: ", e);
   }
 
   if (!response.ok) {
+    console.log(store);
     throw new Error(`Network response was not ok (${response.status})`);
   }
 
@@ -78,23 +76,51 @@ async function fetchNearbyStores(store, userLocation) {
 
 // Iterates and finds all approved stores in parallel
 async function searchNearbyStores(userLocation, stores) {
-  const promises = queries.map(query =>
-    fetchNearbyStores(query, userLocaiton)
-  );
+  let storeArray = [];
+  const promises = stores.map(async (query, index) => {
+    const result = await fetchNearbyStores(query, userLocation);
+    const foundStores = result.resourceSets[0].resources;
+
+    const storePromises = foundStores.map(async foundStore => {
+      const name = foundStore.name || 'Unknown';
+      const address = foundStore.Address.formattedAddress;
+      const coordinates = foundStore.geocodePoints[0].coordinates;
+      const distTime = await fetchDistance(userLocation, coordinates);
+      return {
+        name: name,
+        address: address,
+        distance: distTime[0],
+        travelTime: distTime[1],
+      };
+    });
+
+    const storeResults = await Promise.all(storePromises);
+    storeArray = storeArray.concat(storeResults);
+  });
+
+  await Promise.all(promises);
+
+  storeArray.sort((a, b) => {
+    return a.distance - b.distance;
+  });
+
+  return storeArray;
 }
 
 
-router.get(`/${parsed.name}`, async (req, res) => {
-  const location = "1761 15th St, Troy, NY 12180";
-  const coordinates = fetchCoordinates(location);
-  
-  const sampleStores = [
-    'shoprite',
-    'target',
-    'cvs'
-  ];
 
-  res.json({ stores: sampleStores });
+router.put(`/${parsed.name}`, async (req, res) => {
+  const location = req.body.location;
+  if (location == undefined || location.length == 0) {
+    return res.status(400).json({ error: 'Location is required' });
+  }
+
+  let stores = ['Target', 'Hannaford', 'CVS', 'ShopRite'];
+  const coordinates = await fetchCoordinates(location);
+  
+  let storeArray = await searchNearbyStores(coordinates, stores);
+
+  res.json(storeArray);
 });
 
 export default router;
