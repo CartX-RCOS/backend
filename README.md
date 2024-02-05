@@ -1,2 +1,2 @@
 # backend
-Backend for API requests
+Backend for API requests (making contact with our mySQL database) 
