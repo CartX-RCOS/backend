@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
+import pool from './db.js';
 
 const app = express();
 
@@ -17,6 +18,12 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Attach the database pool to the request object
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
 
 // Function to recursively import routes
 const importRoutesFromDirectory = (directory) => {
