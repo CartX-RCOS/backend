@@ -3,8 +3,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 const router = express.Router();
 
-import { findMostSimilar } from '../utils/findMostSimilar.js';
-import { getSimilarityScore } from '../utils/getSimilarityScore.js';
+import { matchItem } from '../utils/matchItem.js';
 
 
 
@@ -16,46 +15,42 @@ router.get(`/${parsed.name}`, async (req, res) => {
   // console.log(getSimilarityScore("Red Apple Re", "Red Apple"))
 
   // Example items
-  const baseItemName = 'a red apple which I like';
+  // const baseItemName = 'a red apple which I like';
   // const items = [{name: 'red apple'}, {name: 'green apple'}, {name: 'red grape'}, {name: 'applered'}];
-  const items = ['my apple red', 'green apple', 'red grape', 'apple red'];
+  // const items = ['my apple red', 'green apple', 'red grape', 'apple red'];
+  const baseGroup = ['Red Apple', 'Blue Banana', 'Milk', '5% Milk', 'Oranges']
+  const baseStoreName = "Base Store"
+  const stores = {
+    "cvs": ['Red Apple', 'Red Banana', '2% Milk', 'brokenmilk', 'abcd', 'Grape'],
+    "hannafords": ['Apple', 'Nothing', 'Random', 'Orange juice'],
+    "walmart": ["chair", "water", "regular banana", "1% milk", "no fat milk", "apple red"]
+  }
+  
+  let result = {}
 
-  let mostSimilarScore = -1;
-  let mostSimilarItem = "";
-  items.forEach(item => {
-    const comparisonScore = getSimilarityScore(baseItemName, item);
-    if (comparisonScore > mostSimilarScore) {
-      mostSimilarScore = comparisonScore;
-      mostSimilarItem = item;
+  baseGroup.forEach(baseItem => {
+    const storeNames = Object.keys(stores)
+    result[baseItem] = {
+      "url": "https://website.com",
+      "quantity": "2",
+      "matches": {
+        [baseStoreName]: {
+          "name": baseItem,
+          "price": "$3"
+        }
+      }
     }
+    storeNames.forEach(storeName => {
+      const storeItems = stores[storeName]
+      const match = matchItem(baseItem, storeItems)
+      result[baseItem]["matches"][storeName] = {
+        "name": match[0],
+        "price": "$2"
+      }
+    }); 
   })
 
-  console.log(mostSimilarItem)
-  console.log(mostSimilarScore)
-
-
-// const mostSimilarItem = findMostSimilar(baseItemName, items);
-// console.log('Most Similar Item:', mostSimilarItem);
-
-  // Lists
-  // const items = req.body.items;
-  // const stores = req.body.stores;
-
-  // // No items selected
-  // if (!items || items.length == 0) {
-  //   return res.status(400).json({ error: 'Items are required' });
-  // }
-
-  // // No stores given
-  // if (!stores || stores.length == 0) {
-  //   return res.status(400).json({ error: 'Stores are required' });
-  // }
-
-  // let rawData = await fetchItems(items, stores, req.db);
-
-
-
-  res.json("ABC");
+  res.json(result);
 });
 
 export default router;
