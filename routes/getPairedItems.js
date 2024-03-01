@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 const router = express.Router();
 
-// import { matchItem } from '../utils/matchItem.js';
+import { matchItem } from '../utils/matchItem.js';
 import { sampleStoreData } from '../json/sampleStoreData.js';
 
 // Get file route name (Same as file name)
@@ -25,12 +25,58 @@ function createStoreMap (storeMap, stores) {
 
 // getGroups
 function getGroups (storeMap, min_matches) {
-  groups = {}
+  const groups = []
+
+  // Initialize to empty
+  const used = {}
   storeMap.forEach((items, store) => {
-    items.forEach((data, item) => {
-      console.log(data)
+    used[store] = {}
+  } );
+
+  // Loop through stores
+  storeMap.forEach((baseItems, baseStore) => {
+    // used[baseStore] = {}
+    // Loop through each item in every store
+    baseItems.forEach((baseData, baseItem) => {
+      if (used[baseStore][baseItem] != undefined) {
+        return
+      }
+
+      const group = {
+        "url": "https://website.com",
+        "quantity": "2",
+        "matches": {
+          [baseStore]: {
+            "name": baseItem,
+            "price": "$3",
+            "quantity": "5"
+          }
+        }
+      }
+      
+      storeMap.forEach((comparisonItems, comparisonStore) => {
+        // Skip same store
+        if (baseStore == comparisonStore) {
+          return
+        }
+
+        const [closestMatch, score]  = matchItem(baseItem, comparisonItems)
+        group["matches"][comparisonStore] = closestMatch
+      } );
+
+      // console.log(group)
+      groups.push(group)
+      Object.entries(group.matches).forEach(([store, { name, price, quantity }]) => {
+        used[store][name] = true;
+        // console.log(`Store: ${store}, Name: ${name}, Price: ${price}, Quantity: ${quantity}`);
+      });
+      
     } );
   } );
+
+  // console.log(used)
+
+  return groups
 } 
 
 router.get(`/${parsed.name}`, async (req, res) => {  

@@ -5,7 +5,7 @@ export function matchItem (baseItem, items) {
    let mostSimilarItem = "";
 
    items.forEach(item => {
-      const comparisonScore = getSimilarityScore(baseItem, item);
+      const comparisonScore = getSimilarityScore(baseItem, item.name);
       if (comparisonScore > mostSimilarScore) {
          mostSimilarScore = comparisonScore;
          mostSimilarItem = item;
