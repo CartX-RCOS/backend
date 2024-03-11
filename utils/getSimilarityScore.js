@@ -15,5 +15,8 @@ export function getSimilarityScore(baseString, comparisonString) {
       totalSimilarityScore += bestSimilarityScore
    });
 
-   return totalSimilarityScore
+   const maxPossibleScore = baseWords.length * 100;
+   const similarityPercentage = (totalSimilarityScore / maxPossibleScore) * 100;
+
+   return similarityPercentage
 }
