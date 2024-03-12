@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
-import { db } from './db.js';
+import pool from './db.js';
 
 const app = express();
 
@@ -21,7 +21,7 @@ app.use(cors(corsOptions));
 
 // Attach the database pool to the request object
 app.use((req, res, next) => {
-  req.db = db;
+  req.db = pool;
   next();
 });
 
