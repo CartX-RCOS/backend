@@ -24,7 +24,7 @@ function createStoreMap (storeMap, stores) {
 }
 
 // getGroups
-function getGroups (storeMap, min_matches) {
+function getGroups (stores, storeMap, min_matches) {
   const used = {}
   const groups = []
 
@@ -44,7 +44,10 @@ function getGroups (storeMap, min_matches) {
       const group = {
         ...baseData,
         matches: {
-          [baseStore]: baseData
+          [baseStore]: {
+            ...baseData,
+            "matched": true
+          }
         }
       };
       
@@ -54,13 +57,16 @@ function getGroups (storeMap, min_matches) {
           return
         }
 
-        const [closestMatch, score]  = matchItem(baseItem, comparisonItems)
+        const [closestMatch, score] = matchItem(baseItem, comparisonItems)
 
         // Do not include matches below a certain score
         if (score < 75) {
           return
         }
-        group["matches"][comparisonStore] = closestMatch
+        group["matches"][comparisonStore] = {
+          ...closestMatch,
+          "matched": true
+        }
       } );
 
       // Don't include groups that did not reach minimum matches
@@ -69,7 +75,16 @@ function getGroups (storeMap, min_matches) {
         return
       }
 
-      // console.log(min_matches)
+      stores.forEach((storeName) => {
+        if (group.matches[storeName] != undefined) {
+          return
+        }
+
+        group.matches[storeName] = {
+          "matched": false
+        }
+      })
+
       groups.push(group)
       Object.entries(group.matches).forEach(([store, { name, price, quantity }]) => {
         used[store][name] = true;
@@ -81,12 +96,13 @@ function getGroups (storeMap, min_matches) {
   return groups
 } 
 
-router.get(`/${parsed.name}`, async (req, res) => {  
+router.get(`/${parsed.name}`, async (req, res) => { 
+  const stores = ["target", "cvs", "hannaford", "shopright"] 
   const storeMap = new Map();
   createStoreMap(storeMap, sampleStoreData);
 
   const minMatches = 2;
-  const groups = getGroups(storeMap, minMatches);
+  const groups = getGroups(stores, storeMap, minMatches);
 
   res.json(groups);
 });
