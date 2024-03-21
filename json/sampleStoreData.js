@@ -70,7 +70,7 @@ export const sampleStoreData = {
       quantity: "7"
     }
   ],
-  "walmart": [
+  "shopright": [
     {
       name: "Chair",
       price: "25",
