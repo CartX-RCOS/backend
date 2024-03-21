@@ -48,7 +48,7 @@ export const sampleStoreData = {
       quantity: "6"
     }
   ],
-  "hannafords": [
+  "hannaford": [
     {
       name: 'Green Apple',
       price: "1.5",
@@ -70,7 +70,7 @@ export const sampleStoreData = {
       quantity: "7"
     }
   ],
-  "walmart": [
+  "shopright": [
     {
       name: "Chair",
       price: "25",
