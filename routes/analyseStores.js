@@ -19,8 +19,8 @@ router.get(`/${parsed.name}`, async (req, res) => {
       analysisObject[storeName] = {
          ...store,
          "analysisPoints": parseFloat(store.travelTime),
-         "validItems": [],
-         "invalidItems": {}
+         "matchedItems": [],
+         "notMatchedItems": []
       };
    });
 
@@ -28,15 +28,24 @@ router.get(`/${parsed.name}`, async (req, res) => {
    groupData.groups.forEach(group => {
       Object.keys(group.matches).forEach((storeName) => {
          const match = group.matches[storeName]
+
+         // Skip and store unmatched items
+         if (match.matched == false) {
+            const { matches, ...groupWithoutMatches } = group;
+            analysisObject[storeName].notMatchedItems.push(groupWithoutMatches)
+            return
+         }
+
+         // Add to analysisPoints and store match
          analysisObject[storeName].analysisPoints += parseFloat(match.price)
-         analysisObject[storeName].validItems.push(match)
+         analysisObject[storeName].matchedItems.push(match)
       })
    })
 
    // Find average
    Object.keys(analysisObject).forEach((storeName) => {
       const analysisPoints = analysisObject[storeName].analysisPoints
-      const totalItems = analysisObject[storeName].validItems.length
+      const totalItems = analysisObject[storeName].matchedItems.length
       analysisObject[storeName]["averageAnalysisPoints"] = parseFloat((analysisPoints / totalItems).toFixed(2));
    })
 
