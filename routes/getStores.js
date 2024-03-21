@@ -60,7 +60,7 @@ async function fetchNearbyStores(store, userLocation) {
   let response;
   try {
     response = await fetch(`https://dev.virtualearth.net/REST/v1/LocalSearch/?query=${store}&userLocation=${userLocation[0]}
-    ,${userLocation[1]}&maxResults=3&key=${apiKey}`);
+    ,${userLocation[1]}&maxResults=1&key=${apiKey}`);
   } catch(e) {
     console.log("Error: ", e);
   }
