@@ -12,5 +12,5 @@ export function matchItem (baseItem, items) {
       }
    })
 
-   return ([mostSimilarItem, mostSimilarScore])
+   return ([mostSimilarItem, mostSimilarScore]);
 }

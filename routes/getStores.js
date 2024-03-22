@@ -110,7 +110,9 @@ async function searchNearbyStores(userLocation, stores) {
 
 
 router.put(`/${parsed.name}`, async (req, res) => {
-  const location = req.body.location;
+  // const location = req.body.location;
+  
+  const location = "60 TImberline Drive, Nanuet, NY";
   if (location == undefined || location.length == 0) {
     return res.status(400).json({ error: 'Location is required' });
   }

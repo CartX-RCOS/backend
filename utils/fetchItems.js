@@ -9,11 +9,11 @@ export async function fetchItems(items, stores, db) {
       results[store] = {};
 
       try {
-         // Generate item queries
-         const queries = items.map(async (item) => {
-         const query = `SELECT * FROM ${store} WHERE product_name LIKE '%${item}%'`;
-         let response = await db.query(query);
-         return [item, response[0]]; 
+            // Generate item queries
+            const queries = items.map(async (item) => {
+            const query = `SELECT * FROM ${store} WHERE product_name LIKE '%${item}%'`;
+            let response = await db.query(query);
+            return [item, response[0]]; 
          });
 
          // Wait for all item queries to resolve
@@ -32,7 +32,5 @@ export async function fetchItems(items, stores, db) {
 
    // Wait for all store processes to resolve
    await Promise.all(storePromises);
-
-
-   return results
- }
+   return results;
+}

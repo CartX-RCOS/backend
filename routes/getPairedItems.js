@@ -2,8 +2,11 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
 const router = express.Router();
+import axios from 'axios';
 
 import { matchItem } from '../utils/matchItem.js';
+
+// this is where he will give the data from the database
 import { sampleStoreData } from '../json/sampleStoreData.js';
 
 // Get file route name (Same as file name)
@@ -97,14 +100,25 @@ function getGroups (stores, storeMap, min_matches) {
 } 
 
 router.get(`/${parsed.name}`, async (req, res) => { 
-  const stores = ["target", "cvs", "hannaford", "shopright"] 
+  // const stores = ["target", "cvs", "hannaford", "shopright"] 
+
+  const stores = ["cvs", "hannaford"]
+  // search query
+  const searchQuery = "queso";
   const storeMap = new Map();
-  createStoreMap(storeMap, sampleStoreData);
 
-  const minMatches = 2;
-  const groups = getGroups(stores, storeMap, minMatches);
+  // sample store data send it
+  try {
+    const response = await axios.post("http://localhost:8080/testDB", {name: searchQuery});
+    createStoreMap(storeMap, response.data);
 
-  res.json(groups);
+    const minMatches = 2;
+    const groups = getGroups(stores, storeMap, minMatches);
+    res.json(groups);
+  } catch (error){
+    console.log(error);
+    res.send("error");
+  }
 });
 
 export default router;
