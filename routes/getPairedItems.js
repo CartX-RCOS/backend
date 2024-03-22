@@ -4,7 +4,8 @@ import path from 'path';
 const router = express.Router();
 
 import { matchItem } from '../utils/matchItem.js';
-import { sampleStoreData } from '../json/sampleStoreData.js';
+// import { sampleStoreData } from '../json/sampleStoreData.js';
+import { fetchItems } from '../utils/fetchItems.js';
 
 // Get file route name (Same as file name)
 const __filename = fileURLToPath(import.meta.url);
@@ -24,7 +25,7 @@ function createStoreMap (storeMap, stores) {
 }
 
 // getGroups
-function getGroups (stores, storeMap, min_matches) {
+function getGroups (stores, storeMap, min_matches, min_score) {
   const used = {}
   const groups = []
 
@@ -60,7 +61,7 @@ function getGroups (stores, storeMap, min_matches) {
         const [closestMatch, score] = matchItem(baseItem, comparisonItems)
 
         // Do not include matches below a certain score
-        if (score < 75) {
+        if (score < min_score) {
           return
         }
         group["matches"][comparisonStore] = {
@@ -94,16 +95,30 @@ function getGroups (stores, storeMap, min_matches) {
   } );
 
   return groups
-} 
+}
 
-router.get(`/${parsed.name}`, async (req, res) => { 
-  const stores = ["target", "cvs", "hannaford", "shopright"] 
+router.post(`/${parsed.name}`, async (req, res) => { 
+  const stores = req.body.stores
+  const searchQuery = req.body.searchQuery
+
+  if (stores == undefined || stores.length == 0) {
+    return res.status(400).json({ error: 'stores of at least length 1 is required' });
+  }
+
+  if (searchQuery == undefined || searchQuery == "") {
+    return res.status(400).json({ error: 'searchQuery is required and cannot be ""' });
+  }
+
+  const storeData = await fetchItems(req.db, searchQuery, stores)
+
   const storeMap = new Map();
-  createStoreMap(storeMap, sampleStoreData);
+  createStoreMap(storeMap, storeData);
 
   const minMatches = 2;
-  const groups = getGroups(stores, storeMap, minMatches);
+  const min_score = 50; //% match
+  const groups = getGroups(stores, storeMap, minMatches, min_score);
 
+  // console.log(groups.length)
   res.json(groups);
 });
 

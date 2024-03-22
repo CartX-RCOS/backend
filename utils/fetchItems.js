@@ -1,38 +1,23 @@
-export async function fetchItems(items, stores, db) {
-   // Validate
-   if(!items || !stores || !db){
-      return {}
-   }
-
-   let results = {};
-   const storePromises = stores.map(async (store) => {
-      results[store] = {};
-
-      try {
-         // Generate item queries
-         const queries = items.map(async (item) => {
-         const query = `SELECT * FROM ${store} WHERE product_name LIKE '%${item}%'`;
-         let response = await db.query(query);
-         return [item, response[0]]; 
-         });
-
-         // Wait for all item queries to resolve
-         const allResults = await Promise.all(queries);
-
-         // Store in result
-         allResults.forEach(([item, response]) => {
-         results[store][item] = response;
-         });
-
-      // Could not connect to SQL or table does not exist
-      } catch (error) {
-         console.error(`Error querying store ${store}: ${error.message}`);
-      }
+export async function fetchItems(db, searchQuery, stores) {
+   const words = searchQuery.split(/\s+/); // Split the search query into words
+   const regexParts = words.map(word => {
+      // Escape regex characters in word and add an optional 's' at the end for plurals
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return `(?:${escapedWord}s?)`;
    });
 
-   // Wait for all store processes to resolve
-   await Promise.all(storePromises);
+   // Join the parts with '.*' to match documents that contain all words in any order
+   const regexPattern = regexParts.join('.*');
+   const _regex = new RegExp(regexPattern, 'i');
 
+   const storeData = {}
+   for (const store of stores) {
+      const foundItems = await db.collection(store).find({
+         name: { $regex: _regex }
+      }).toArray();
+   
+      storeData[store] = foundItems;
+   }
 
-   return results
+   return storeData
  }

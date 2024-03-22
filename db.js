@@ -10,7 +10,7 @@ async function connect() {
     try {
         await client.connect();
         console.log("Connected successfully to MongoDB");
-        return client.db('CartX'); 
+        return client.db('inventory'); 
     } catch (e) {
         console.error(e);
     }
