@@ -49,8 +49,15 @@ router.get(`/${parsed.name}`, async (req, res) => {
       analysisObject[storeName]["averageAnalysisPoints"] = parseFloat((analysisPoints / totalItems).toFixed(2));
    })
 
+   const analysisArray = Object.entries(analysisObject);
 
-   res.json(analysisObject)
+   analysisArray.sort((a, b) => {
+      return a[1].averageAnalysisPoints - b[1].averageAnalysisPoints;
+   });
+
+   const sortedAnalysisObject = Object.fromEntries(analysisArray);
+
+   res.json(sortedAnalysisObject)
 });
 
 export default router;
