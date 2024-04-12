@@ -98,9 +98,9 @@ function getGroups (stores, storeMap, min_matches, min_score) {
 }
 
 router.post(`/${parsed.name}`, async (req, res) => { 
-  const stores = req.body.stores
-  const searchQuery = req.body.searchQuery
-
+  const stores = req.body.stores;
+  const searchQuery = req.body.searchQuery;
+  
   if (stores == undefined || stores.length == 0) {
     return res.status(400).json({ error: 'stores of at least length 1 is required' });
   }
@@ -115,7 +115,7 @@ router.post(`/${parsed.name}`, async (req, res) => {
   createStoreMap(storeMap, storeData);
 
   const minMatches = 2;
-  const min_score = 50; //% match
+  const min_score = 75; //% match
   const groups = getGroups(stores, storeMap, minMatches, min_score);
 
   // console.log(groups.length)
