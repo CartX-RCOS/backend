@@ -115,7 +115,7 @@ router.post(`/${parsed.name}`, async (req, res) => {
   createStoreMap(storeMap, storeData);
 
   const minMatches = 2;
-  const min_score = 50; //% match
+  const min_score = 75; //% match
   const groups = getGroups(stores, storeMap, minMatches, min_score);
 
   // console.log(groups.length)
