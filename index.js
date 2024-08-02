@@ -11,12 +11,25 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// origin: 'https://backend-app-iqjdn.ondigitalocean.app/',
+const allowedOrigins = [
+  'http://localhost:3000', // For testing frontend
+  'http://localhost:8080', // For local backend access
+  'https://cartx.us',      // Production frontend
+];
 
 const corsOptions = {
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like from Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionSuccessStatus: 200,
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
