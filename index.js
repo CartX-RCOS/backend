@@ -11,8 +11,10 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// origin: 'https://backend-app-iqjdn.ondigitalocean.app/',
+
 const corsOptions = {
-  origin: 'https://backend-app-iqjdn.ondigitalocean.app/',
+  origin: true,
   credentials: true,
   optionSuccessStatus: 200,
 };
