@@ -53,6 +53,9 @@ async function run() {
 
       console.log("Connected successfully to MongoDB");
 
+      //model for generating vector embeddings
+      const model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+
       // Access the inventory
       const database = client.db('inventory');
 
@@ -64,11 +67,8 @@ async function run() {
          //returns items in collection as arrays
          const storeData = await store.find().toArray();
 
-         //model for generating vector embeddings
-         const model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-
          //get array of just item names
-         const storeItemNames = storeData.map(item => item.name);
+         const storeItemNames = storeData.map(item => item.name + " " + item.categories);
 
          //model will generate vector embeddings for every item
          const embeddings = await model(storeItemNames);
