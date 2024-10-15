@@ -1,14 +1,21 @@
 import { MongoClient } from 'mongodb';
 import { pipeline } from '@xenova/transformers';
+import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+const router = express.Router();
+
 const __filename = fileURLToPath(import.meta.url);
+const parsed = path.parse(__filename);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const uri = process.env.MONGO_URI;
+
+let client;
+let isClientConnected = false;
 
 // Function to calculate cosine similarity between two vectors
 function cosineSimilarity(vecA, vecB) {
@@ -39,15 +46,37 @@ const averageEmbedding = (tensor) => {
    return averagedEmbeddings;
 };
 
-const client = new MongoClient(uri);
-
 const stores = ['hannaford', 'walgreens', 'cvs'];
 
-async function run() {
+// Initialize MongoDB client once when the server starts
+async function initializeMongoClient() {
    try {
-      // Connect to the MongoDB cluster
-      await client.connect();
-      console.log("Connected successfully to MongoDB");
+      if (!client) {
+         client = new MongoClient(uri);
+         await client.connect();
+         console.log("Connected successfully to MongoDB");
+         isClientConnected = true;  // Mark the client as connected
+      }
+   } catch (err) {
+      console.error("Error connecting to MongoDB", err);
+      isClientConnected = false;
+   }
+}
+
+// Ensure the MongoDB client is connected before handling requests
+async function ensureClientConnected() {
+   if (!isClientConnected) {
+      await initializeMongoClient();
+   }
+}
+
+// Call the MongoDB initialization before any user interaction (e.g., when server starts)
+await initializeMongoClient();
+
+router.put(`/${parsed.name}`, async (req, res) => {
+   try {
+      // Ensure the MongoDB client is still connected
+      await ensureClientConnected();
 
       // Access the database and collection
       const database = client.db('inventory');
@@ -55,10 +84,8 @@ async function run() {
       // Load the pre-trained model for embeddings
       const model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
-      //-----------------------------------------------------------------------------------
-      //HERE WILL GO API CALL TO GET SEARCH QUERY FROM FRONTEND
-      //-----------------------------------------------------------------------------------
-      const query = "apple";
+      // Get the search query from the request body
+      const query = req.body.searchQuery;
 
       // Convert the corrected query to an embedding
       const queryEmbedding = await model(query);
@@ -78,29 +105,22 @@ async function run() {
 
             const { embedding, ...newItem } = item;
 
-            // Append the result to the results array
-            results.push({
-               item: newItem,
-               similarity: semanticSimilarity,
-               store: store
-            });
+            // Append the result to the results array and add the store name
+            newItem['store'] = stores[i];
+            newItem['similarity'] = semanticSimilarity;
+            results.push(newItem);
          });
       }
-
 
       // Sort results based on similarity in descending order
       results.sort((a, b) => b.similarity - a.similarity);
 
-      const output = results.slice(0, 100).map(result => JSON.stringify(result)).join('\n');
-      console.log(output);
+      res.json(results.slice(0,30));
 
    } catch (error) {
       console.error(error);
-   } finally {
-      // Close the database connection
-      await client.close();
+      res.status(500).json({ error: 'An error occurred' });
    }
-}
+});
 
-// Run the main function
-run().catch(console.dir);
+export default router;

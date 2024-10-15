@@ -68,7 +68,7 @@ async function run() {
          const storeData = await store.find().toArray();
 
          //get array of just item names
-         const storeItemNames = storeData.map(item => item.name + " " + item.categories);
+         const storeItemNames = storeData.map(item => item.name);
 
          //model will generate vector embeddings for every item
          const embeddings = await model(storeItemNames);
