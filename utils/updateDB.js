@@ -3,6 +3,9 @@ import { pipeline } from '@xenova/transformers';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch, { Headers } from 'node-fetch';
+global.fetch = fetch;
+global.Headers = Headers;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,13 +15,13 @@ const uri = process.env.MONGO_URI;
 
 const averageEmbedding = (tensor) => {
 
-   // Convert the tensor data to a standard array
-   const array = Array.from(tensor.data);
-
-   console.log(numItems * numTokens * embeddingSize);
-
    // Get the dimensions from the tensor
    const [numItems, numTokens, embeddingSize] = tensor.dims;
+
+   console.log(`numItems: ${numItems}, numTokens: ${numTokens}, embeddingSize: ${embeddingSize}`);
+
+   // Convert the tensor data to a standard array
+   const array = Array.from(tensor.data);
 
    const averagedEmbeddings = [];
 
@@ -32,74 +35,78 @@ const averageEmbedding = (tensor) => {
             itemEmbedding[k] += array[startIndex + k];  // Sum the values for this embedding dimension
          }
       }
-      // Calculate the average embedding for this item by dividing by the number of tokens (20)
+      // Calculate the average embedding for this item by dividing by the number of tokens (numTokens)
       const averagedItemEmbedding = itemEmbedding.map(value => value / numTokens);
       averagedEmbeddings.push(averagedItemEmbedding);  // Store the averaged embedding for this item
    }
 
-   return averagedEmbeddings;  // This will be an array of size [960][384]
+   return averagedEmbeddings;  // This will be an array of size [numItems][embeddingSize]
 };
 
 
-// Create a new MongoClient
+
 const client = new MongoClient(uri);
 
 //store names - MUST BE SAME AS MONGODB NAME
-const stores = ['hannaford', 'walgreens', 'cvs'];
+const stores = ['walgreens', 'cvs', 'hannaford'];
+
+
+// Define a batch size (e.g., 1000 items per batch)
+const BATCH_SIZE = 1000;
 
 async function run() {
    try {
-
       // Connect to the MongoDB cluster
       await client.connect();
 
       console.log("Connected successfully to MongoDB");
 
-      //model for generating vector embeddings
+      // Model for generating vector embeddings
       const model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
-      // Access the inventory
+      // Access the inventory database
       const database = client.db('inventory');
 
       for (let i = 0; i < stores.length; i++) {
-
-         //get collections for stores
          const store = database.collection(stores[i]);
 
-         //returns items in collection as arrays
+         // Returns items in collection as arrays
          const storeData = await store.find().toArray();
-
-         //get array of just item names
          const storeItemNames = storeData.map(item => item.name);
 
-         //model will generate vector embeddings for every item
-         const embeddings = await model(storeItemNames);
+         console.log(`Processing ${storeItemNames.length} items for ${stores[i]}`);
 
-         //expected output of data is a Float32Array
-         //each item name in the DB gets tokenized, with each token having a 384-size vector of float values representing it
-         if (embeddings.data instanceof Float32Array) {
-            
-            //get the average vector of the token vectors
-            const nameEmbeddings = averageEmbedding(embeddings);
+         for (let start = 0; start < storeItemNames.length; start += BATCH_SIZE) {
+            // Slice the items to process in the current batch
+            const batchItemNames = storeItemNames.slice(start, start + BATCH_SIZE);
+            console.log(`Processing batch ${start / BATCH_SIZE + 1}: ${batchItemNames.length} items`);
 
-            for (let j = 0; j < storeData.length; j++) {
+            // Generate vector embeddings for the current batch of items
+            const embeddings = await model(batchItemNames);
 
-               // Get the embedding for this item
-               const embedding = nameEmbeddings[j];
+            if (embeddings.data instanceof Float32Array) {
+               const nameEmbeddings = averageEmbedding(embeddings);
 
-               // Update the document with its embedding
-               await store.updateOne(
-                  { _id: storeData[j]._id },          // Match document by its unique _id
-                  { $set: { embedding: embedding } }  // Add or update the 'embedding' field
-               );
+               // Update each document in the batch with the corresponding embedding
+               for (let j = 0; j < nameEmbeddings.length; j++) {
+                  const embedding = nameEmbeddings[j];
+
+                  // Update the document with its embedding
+                  await store.updateOne(
+                     { _id: storeData[start + j]._id },          // Match document by its unique _id
+                     { $set: { embedding: embedding } }          // Add or update the 'embedding' field
+                  );
+               }
+
+               console.log(`Batch ${start / BATCH_SIZE + 1} completed.`);
+            } else {
+               console.error("Error with embeddings data.");
+               break;
             }
-
-         } else {
-            console.error("Error");
          }
-         console.log(stores[i] + " completed.")
-      }
 
+         console.log(`${stores[i]} completed.`);
+      }
    } finally {
       // Close the connection
       await client.close();
