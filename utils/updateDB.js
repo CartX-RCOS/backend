@@ -15,6 +15,8 @@ const averageEmbedding = (tensor) => {
    // Convert the tensor data to a standard array
    const array = Array.from(tensor.data);
 
+   console.log(numItems * numTokens * embeddingSize);
+
    // Get the dimensions from the tensor
    const [numItems, numTokens, embeddingSize] = tensor.dims;
 

@@ -1,11 +1,10 @@
-import { MongoClient } from 'mongodb';
-import { pipeline } from '@xenova/transformers';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const parsed = path.parse(__filename);
+const router = express.Router();
 
 
 // Function to calculate cosine similarity between two vectors
@@ -46,3 +45,11 @@ const averageEmbedding = (tensor) => {
 
 
 //This file will take all the results from the search, and try to group
+
+
+router.put(`/${parsed.name}`, async (req, res) => {
+   const data = req.body.results;
+   console.log(data)
+});
+
+export default router;
