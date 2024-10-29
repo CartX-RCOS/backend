@@ -3,13 +3,13 @@ import json
 import os
 from dotenv import load_dotenv
 
-api_key = ''
+api_key = 'keys.Vgcni4wY8_suAcR2ca86NNw1pY_AwVUzufrnExPrgEg'
 
 url = "https://connect.dev.instacart.tools/idp/v1/products/products_link"
 
 data = {
     "title": "Weekly Grocery Shopping",
-    "image_url": "https://example.com/image.jpg",  
+    "image_url": "https://i.imgur.com/6IUif55.png",  
     "link_type": "shopping_list",
     "expires_in": 1,  
     "instructions": ["This is a shopping list for weekly groceries."],  
@@ -34,7 +34,7 @@ data = {
         }
     ],
     "landing_page_configuration": {
-        "partner_linkback_url": "https://example.com/shopping_list",
+        "partner_linkback_url": "https://cartx.us/",
         "enable_pantry_items": False
     }
 }
