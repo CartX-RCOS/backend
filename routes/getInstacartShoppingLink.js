@@ -20,7 +20,6 @@ const headers = {
 
 router.post(`/${parsed.name}`, async (req, res) => {
    const items = req.body.items;
-   console.log(items)
    if (items == undefined || items.length == 0) {
       return res.status(400).json({ error: 'Items are required' });
    }
