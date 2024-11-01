@@ -55,7 +55,7 @@ async function initializeMongoClient() {
          client = new MongoClient(uri);
          await client.connect();
          console.log("Connected successfully to MongoDB");
-         isClientConnected = true;  // Mark the client as connected
+         isClientConnected = true;
       }
    } catch (err) {
       console.error("Error connecting to MongoDB", err);
@@ -87,26 +87,29 @@ router.put(`/${parsed.name}`, async (req, res) => {
       // Get the search query from the request body
       const query = req.body.searchQuery;
 
-      // Convert the corrected query to an embedding
+      // Split the search query into individual words for keyword matching
+      const searchWords = query.split(/\s+/).map(word => word.trim()).filter(Boolean);
+
+      // Convert the query to an embedding
       const queryEmbedding = await model(query);
       const averagedQueryEmbedding = averageEmbedding(queryEmbedding);
 
       const results = [];
 
-      for (let i = 0; i < stores.length; i++) {
-         const store = database.collection(stores[i]);
+      for (const storeName of stores) {
+         const store = database.collection(storeName);
 
-         const items = await store.find().toArray();
+         // Perform an `$or` query to find any items where name contains any word from searchWords
+         const keywordFilteredItems = await store.find({
+            $or: searchWords.map(word => ({ name: { $regex: word, $options: 'i' } }))
+         }).toArray();
 
-         // Calculate similarity for each item in the database
-         items.forEach(item => {
-            // Semantic similarity
+         // Calculate similarity for each item in the filtered results
+         keywordFilteredItems.forEach(item => {
             const semanticSimilarity = cosineSimilarity(item.embedding, averagedQueryEmbedding[0]);
 
             const { embedding, ...newItem } = item;
-
-            // Append the result to the results array and add the store name
-            newItem['store'] = stores[i];
+            newItem['store'] = storeName;
             newItem['similarity'] = semanticSimilarity;
             results.push(newItem);
          });
@@ -115,7 +118,7 @@ router.put(`/${parsed.name}`, async (req, res) => {
       // Sort results based on similarity in descending order
       results.sort((a, b) => b.similarity - a.similarity);
 
-      res.json(results.slice(0,30));
+      res.json(results.slice(0, 30));
 
    } catch (error) {
       console.error(error);
