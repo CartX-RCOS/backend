@@ -6,8 +6,6 @@ const __filename = fileURLToPath(import.meta.url);
 const parsed = path.parse(__filename);
 const router = express.Router();
 
-
-// Function to calculate cosine similarity between two vectors
 function cosineSimilarity(vecA, vecB) {
    const dotProduct = vecA.reduce((acc, val, idx) => acc + val * vecB[idx], 0);
    const magnitudeA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
@@ -15,41 +13,49 @@ function cosineSimilarity(vecA, vecB) {
    return dotProduct / (magnitudeA * magnitudeB);
 }
 
-const averageEmbedding = (tensor) => {
+function groupSimilarItems(data, threshold = 0.9) {
+   const groupedItems = [];
+   const processedIndices = new Set();
 
-   // Convert the tensor data to a standard array
-   const array = Array.from(tensor.data);
+   for (let i = 0; i < data.length; i++) {
+      if (processedIndices.has(i)) continue;
 
-   // Get the dimensions from the tensor
-   const [numItems, numTokens, embeddingSize] = tensor.dims;
+      const currentItem = data[i];
+      const currentGroup = [currentItem];
 
-   const averagedEmbeddings = [];
+      for (let j = i + 1; j < data.length; j++) {
+         if (processedIndices.has(j)) continue;
 
-   for (let i = 0; i < numItems; i++) {
-      const itemEmbedding = new Array(embeddingSize).fill(0);
+         const compareItem = data[j];
+         
+         if (currentItem.store !== compareItem.store) {
+            const similarity = cosineSimilarity(currentItem.embedding, compareItem.embedding);
 
-      // Sum up the embeddings for all tokens in this item
-      for (let j = 0; j < numTokens; j++) {
-         const startIndex = (i * numTokens + j) * embeddingSize;  // Calculate the start index for this token's embedding
-         for (let k = 0; k < embeddingSize; k++) {
-            itemEmbedding[k] += array[startIndex + k];  // Sum the values for this embedding dimension
+            if (similarity >= threshold) {
+               currentGroup.push(compareItem);
+               processedIndices.add(j);
+            }
          }
       }
-      // Calculate the average embedding for this item by dividing by the number of tokens (20)
-      const averagedItemEmbedding = itemEmbedding.map(value => value / numTokens);
-      averagedEmbeddings.push(averagedItemEmbedding);  // Store the averaged embedding for this item
+
+      groupedItems.push(currentGroup);
+      processedIndices.add(i);
    }
 
-   return averagedEmbeddings;  // This will be an array of size [960][384]
-};
-
-
-//This file will take all the results from the search, and try to group
-
+   return groupedItems;
+}
 
 router.put(`/${parsed.name}`, async (req, res) => {
    const data = req.body.results;
-   console.log(data)
+
+   try {
+      const groupedItems = groupSimilarItems(data);
+
+      res.json({ groupedItems });
+   } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'An error occurred while grouping items' });
+   }
 });
 
 export default router;

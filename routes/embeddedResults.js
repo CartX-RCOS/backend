@@ -118,7 +118,7 @@ router.put(`/${parsed.name}`, async (req, res) => {
       // Sort results based on similarity in descending order
       results.sort((a, b) => b.similarity - a.similarity);
 
-      res.json(results.slice(0, 30));
+      res.json(results.slice(0, 90));
 
    } catch (error) {
       console.error(error);
