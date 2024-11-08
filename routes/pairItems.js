@@ -1,6 +1,8 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
+import bodyParser from 'body-parser';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const parsed = path.parse(__filename);
@@ -49,6 +51,7 @@ router.put(`/${parsed.name}`, async (req, res) => {
    const data = req.body.results;
 
    try {
+      console.log("reached")
       const groupedItems = groupSimilarItems(data);
 
       res.json({ groupedItems });

@@ -2,6 +2,7 @@ import { MongoClient } from 'mongodb';
 import { pipeline } from '@xenova/transformers';
 import express from 'express';
 import dotenv from 'dotenv';
+import bodyParser from 'body-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -45,6 +46,42 @@ const averageEmbedding = (tensor) => {
 
    return averagedEmbeddings;
 };
+
+
+
+function groupSimilarItems(data, threshold = 0.6) {
+   const groupedItems = [];
+   const processedIndices = new Set();
+
+   for (let i = 0; i < data.length; i++) {
+      if (processedIndices.has(i)) continue;
+
+      const currentItem = data[i];
+      const currentGroup = [currentItem];
+
+      for (let j = i + 1; j < data.length; j++) {
+         if (processedIndices.has(j)) continue;
+
+         const compareItem = data[j];
+         
+         if (currentItem.store !== compareItem.store) {
+            const similarity = cosineSimilarity(currentItem.embedding, compareItem.embedding);
+
+            if (similarity >= threshold) {
+               currentGroup.push(compareItem);
+               processedIndices.add(j);
+            }
+         }
+      }
+
+      groupedItems.push(currentGroup);
+      processedIndices.add(i);
+   }
+
+   return groupedItems;
+}
+
+
 
 const stores = ['hannaford', 'walgreens', 'cvs'];
 
@@ -104,11 +141,11 @@ router.put(`/${parsed.name}`, async (req, res) => {
             $or: searchWords.map(word => ({ name: { $regex: word, $options: 'i' } }))
          }).toArray();
 
+
          // Calculate similarity for each item in the filtered results
          keywordFilteredItems.forEach(item => {
             const semanticSimilarity = cosineSimilarity(item.embedding, averagedQueryEmbedding[0]);
-
-            const { embedding, ...newItem } = item;
+            let newItem = item;
             newItem['store'] = storeName;
             newItem['similarity'] = semanticSimilarity;
             results.push(newItem);
@@ -118,7 +155,9 @@ router.put(`/${parsed.name}`, async (req, res) => {
       // Sort results based on similarity in descending order
       results.sort((a, b) => b.similarity - a.similarity);
 
-      res.json(results.slice(0, 90));
+      const groupedItems = groupSimilarItems(results);
+      
+      res.json(groupedItems);
 
    } catch (error) {
       console.error(error);
