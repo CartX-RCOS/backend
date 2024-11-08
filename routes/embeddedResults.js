@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { group } from 'console';
 
 const router = express.Router();
 
@@ -154,10 +155,15 @@ router.put(`/${parsed.name}`, async (req, res) => {
 
       // Sort results based on similarity in descending order
       results.sort((a, b) => b.similarity - a.similarity);
+      console.log(results[0]);
 
       const groupedItems = groupSimilarItems(results);
+
+      const finalItems = groupedItems.map(group => group[0]); 
+
+      finalItems.sort((a, b) => b.similarity - a.similarity);
       
-      res.json(groupedItems);
+      res.json(finalItems);
 
    } catch (error) {
       console.error(error);

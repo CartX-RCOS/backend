@@ -75,12 +75,16 @@ async function run() {
          const storeItemNames = storeData.map(item => {
             let categories = '';
 
-            if (typeof item.categories === 'undefined') {
-               categories = '';
-            } else if (Array.isArray(item.categories)) {
-               categories = item.categories.join(' ');
+            if (typeof item.item === 'undefined') {
+               if (typeof item.categories === 'undefined') {
+                  categories = '';
+               } else if (Array.isArray(item.categories)) {
+                  categories = item.categories[item.categories.length - 1];
+               } else {
+                  categories = item.categories
+               }
             } else {
-               categories = item.categories;
+               categories = item.item;
             }
 
             return item.name + categories;
