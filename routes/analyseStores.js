@@ -1,63 +1,111 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { nearbyStoreData } from '../json/sameNearbyStores.js';
-import { groupData } from '../json/sampleGroupData.js';
-
-
 
 const router = express.Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const parsed = path.parse(__filename);
 
-router.get(`/${parsed.name}`, async (req, res) => { 
-   // Initiate Object with analysisPoints = travelTime (1 minute = 1 point)
-   const analysisObject = {}; 
-   Object.keys(nearbyStoreData.stores).forEach((storeName) => {
-      const store = nearbyStoreData.stores[storeName];
-      analysisObject[storeName] = {
-         ...store,
-         "analysisPoints": parseFloat(store.travelTime),
-         "matchedItems": [],
-         "notMatchedItems": []
-      };
-   });
+router.post(`/${parsed.name}`, async (req, res) => { 
+   const cart = req.body.cart;
+   if (!cart || cart.length === 0) {
+      return res.status(400).json({ error: 'Non Empty cart is required' });
+   }
 
-   // Loop through matches and add to analysisObject ($1 = 1 point)
-   groupData.groups.forEach(group => {
-      Object.keys(group.matches).forEach((storeName) => {
-         const match = group.matches[storeName]
+   const storeUrls = {
+      "market 32": "https://www.market32.com",
+      "aldi": "https://www.aldi.us",
+      "price rite": "https://www.priceritesupermarkets.com",
+      "shoprite": "https://www.shoprite.com",
+      "walgreens": "https://www.walgreens.com/",
+      "cvs": "https://www.cvs.com/",
+      "price chopper": "https://www.pricechopper.com",
+      "hannaford": "https://www.hannaford.com",
+      "tops markets": "https://www.topsmarkets.com",
+      "market bistro": "https://www.marketbistro.com",
+      "restaurant depot": "https://www.restaurantdepot.com",
+      "target": "https://www.target.com",
+      "kinney drugs": "https://www.kinneydrugs.com"
+   };
 
-         // Skip and store unmatched items
-         if (match.matched == false) {
-            const { matches, ...groupWithoutMatches } = group;
-            analysisObject[storeName].notMatchedItems.push(groupWithoutMatches)
-            return
+   const storeData = {};
+   const storePrices = {}; 
+
+   cart.forEach(item => {
+      for (const [store, matchData] of Object.entries(item.matches)) {
+         if (!storeData[store]) {
+            storeData[store] = {
+               name: store,
+               distance: Math.random() * 10, // Dummy distance
+               price: 0,
+               items: [],
+               priceComparison: 0, 
+               itemAvailability: 0, 
+               savings: 0, 
+               bestChoice: false,
+               comparisonString: "", 
+               url: storeUrls[store] || "https://example.com" 
+            };
          }
 
-         // Add to analysisPoints and store match
-         analysisObject[storeName].analysisPoints += parseFloat(match.price)
-         analysisObject[storeName].matchedItems.push(match)
-      })
-   })
+         const itemPrice = parseFloat(matchData.price) || 0;
+         storeData[store].price += itemPrice;
 
-   // Find average
-   Object.keys(analysisObject).forEach((storeName) => {
-      const analysisPoints = analysisObject[storeName].analysisPoints
-      const totalItems = analysisObject[storeName].matchedItems.length
-      analysisObject[storeName]["averageAnalysisPoints"] = parseFloat((analysisPoints / totalItems).toFixed(2));
-   })
+         storeData[store].items.push({
+            name: item.name,
+            contains: matchData.matched,
+            price: itemPrice,
+            url: matchData.product_url || ""
+         });
 
-   const analysisArray = Object.entries(analysisObject);
-
-   analysisArray.sort((a, b) => {
-      return a[1].averageAnalysisPoints - b[1].averageAnalysisPoints;
+         // Track prices for comparison
+         if (!storePrices[item.name]) {
+            storePrices[item.name] = [];
+         }
+         storePrices[item.name].push(itemPrice);
+      }
    });
 
-   const sortedAnalysisObject = Object.fromEntries(analysisArray);
+   // Calculate itemAvailability and savings
+   for (const store in storeData) {
+      const storeItems = storeData[store].items;
+      let availableCount = 0;
 
-   res.json(sortedAnalysisObject)
+      storeItems.forEach(item => {
+         if (item.contains) availableCount++;
+
+         // Find min price for each item across stores
+         const minPrice = Math.min(...storePrices[item.name]);
+         storeData[store].savings += item.price ? item.price - minPrice : 0;
+      });
+
+      storeData[store].itemAvailability = Math.round((availableCount / storeItems.length) * 100);
+   }
+
+   // Calculate priceComparison
+   const allPrices = Object.values(storeData).map(store => store.price);
+   const minPrice = Math.min(...allPrices);
+   const maxPrice = Math.max(...allPrices);
+
+   Object.values(storeData).forEach(store => {
+      if (maxPrice === minPrice) {
+         store.priceComparison = 100; // All stores have the same price
+      } else {
+         store.priceComparison = Math.round(
+            100 - ((store.price - minPrice) / (maxPrice - minPrice)) * 100
+         );
+      }
+
+      store.comparisonString = `${100 - store.priceComparison}% cheaper than the most expensive store.`;
+   });
+
+   // Determine Best Choice
+   const lowestPriceStore = Object.values(storeData).sort((a, b) => a.price - b.price)[0];
+   lowestPriceStore.bestChoice = true;
+
+   return res.status(200).json(storeData);
 });
+
 
 export default router;
