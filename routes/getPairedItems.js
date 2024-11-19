@@ -25,77 +25,83 @@ function createStoreMap (storeMap, stores) {
 }
 
 // getGroups
-function getGroups (stores, storeMap, min_matches, min_score) {
-  const used = {}
-  const groups = []
+function getGroups(stores, storeMap, min_matches, min_score) {
+  const used = {};
+  const groups = [];
 
   // Initialize to empty
   storeMap.forEach((items, store) => {
-    used[store] = {}
-  } );
+    used[store] = {};
+  });
 
   // Loop through stores
   storeMap.forEach((baseItems, baseStore) => {
     // Loop through each item in every store
     baseItems.forEach((baseData, baseItem) => {
-      if (used[baseStore][baseItem] != undefined) {
-        return
+      if (used[baseStore][baseItem] !== undefined) {
+        return;
       }
 
+      // Exclude embedding from baseData
+      const { embedding, ...baseDataWithoutEmbeddings } = baseData;
+
       const group = {
-        ...baseData,
+        ...baseDataWithoutEmbeddings,
         matches: {
           [baseStore]: {
-            ...baseData,
-            "matched": true
-          }
-        }
+            ...baseDataWithoutEmbeddings, // Exclude embedding here
+            matched: true,
+          },
+        },
       };
-      
+
       storeMap.forEach((comparisonItems, comparisonStore) => {
         // Skip same store
-        if (baseStore == comparisonStore) {
-          return
+        if (baseStore === comparisonStore) {
+          return;
         }
 
-        const [closestMatch, score] = matchItem(baseItem, comparisonItems)
+        const [closestMatch, score] = matchItem(baseItem, comparisonItems);
 
         // Do not include matches below a certain score
         if (score < min_score) {
-          return
+          return;
         }
-        group["matches"][comparisonStore] = {
-          ...closestMatch,
-          "matched": true
-        }
-      } );
+
+        // Exclude embedding from closestMatch
+        const { embedding, ...closestMatchWithoutEmbeddings } = closestMatch;
+        group.matches[comparisonStore] = {
+          ...closestMatchWithoutEmbeddings, // Exclude embedding here
+          matched: true,
+        };
+      });
 
       // Don't include groups that did not reach minimum matches
-      const groupSize = Object.entries(group.matches).length
+      const groupSize = Object.entries(group.matches).length;
       if (groupSize < min_matches) {
-        return
+        return;
       }
 
       stores.forEach((storeName) => {
-        if (group.matches[storeName] != undefined) {
-          return
+        if (group.matches[storeName] !== undefined) {
+          return;
         }
 
         group.matches[storeName] = {
-          "matched": false
-        }
-      })
+          matched: false,
+        };
+      });
 
-      groups.push(group)
-      Object.entries(group.matches).forEach(([store, { name, price, quantity }]) => {
+      groups.push(group);
+      Object.entries(group.matches).forEach(([store, { name }]) => {
         used[store][name] = true;
       });
-      
-    } );
-  } );
+    });
+  });
 
-  return groups
+  return groups;
 }
+
 
 router.post(`/${parsed.name}`, async (req, res) => { 
   const stores = req.body.stores;
