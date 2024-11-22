@@ -33,6 +33,11 @@ router.post(`/${parsed.name}`, async (req, res) => {
    const storePrices = {}; 
 
    cart.forEach(item => {
+      if (!item.matches || Object.keys(item.matches).length === 0) {
+         console.warn(`Item "${item.name}" has no matches.`);
+         return;
+      }
+
       for (const [store, matchData] of Object.entries(item.matches)) {
          if (!storeData[store]) {
             storeData[store] = {
@@ -49,7 +54,8 @@ router.post(`/${parsed.name}`, async (req, res) => {
             };
          }
 
-         const itemPrice = parseFloat(matchData.price) || 0;
+         const itemPrice = parseFloat(matchData.price) || 5.00;
+         console.log(matchData, itemPrice);
          storeData[store].price += itemPrice;
 
          storeData[store].items.push({
@@ -89,12 +95,17 @@ router.post(`/${parsed.name}`, async (req, res) => {
    const maxPrice = Math.max(...allPrices);
 
    Object.values(storeData).forEach(store => {
+      console.log(`Store: ${store.name}`);
+      console.log(`  Total Price: $${store.price.toFixed(2)}`);
+      console.log(`  Item Availability: ${store.itemAvailability}%`);
+      console.log(`  Savings: $${store.savings.toFixed(2)}`);
+      const availabilityFactor = store.itemAvailability / 100;
       if (maxPrice === minPrice) {
-         store.priceComparison = 100; // All stores have the same price
+         store.priceComparison = 100 * availabilityFactor; // All stores have the same price
       } else {
+         console.log(store.name, store.price, minPrice, maxPrice);
          store.priceComparison = Math.round(
-            100 - ((store.price - minPrice) / (maxPrice - minPrice)) * 100
-         );
+            (100 - ((store.price - minPrice) / (maxPrice - minPrice)) * 100) * availabilityFactor);
       }
 
       store.comparisonString = `${100 - store.priceComparison}% cheaper than the most expensive store.`;
@@ -103,6 +114,7 @@ router.post(`/${parsed.name}`, async (req, res) => {
    // Determine Best Choice
    const lowestPriceStore = Object.values(storeData).sort((a, b) => a.price - b.price)[0];
    lowestPriceStore.bestChoice = true;
+   
 
    return res.status(200).json(storeData);
 });
