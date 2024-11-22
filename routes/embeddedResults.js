@@ -50,7 +50,7 @@ const averageEmbedding = (tensor) => {
 
 
 
-function groupSimilarItems(data, threshold = 0.6) {
+function groupSimilarItems(data, threshold = 0.5) {
    const groupedItems = [];
    const processedIndices = new Set();
 
@@ -66,7 +66,9 @@ function groupSimilarItems(data, threshold = 0.6) {
          const compareItem = data[j];
          
          if (currentItem.store !== compareItem.store) {
+            console.log(currentItem.name, compareItem.name)
             const similarity = cosineSimilarity(currentItem.embedding, compareItem.embedding);
+            console.log(similarity);
 
             if (similarity >= threshold) {
                currentGroup.push(compareItem);
@@ -155,13 +157,29 @@ router.put(`/${parsed.name}`, async (req, res) => {
 
       // Sort results based on similarity in descending order
       results.sort((a, b) => b.similarity - a.similarity);
-      console.log(results[0]);
 
       const groupedItems = groupSimilarItems(results);
 
-      const finalItems = groupedItems.map(group => group[0]); 
+      const newItems = groupedItems.map(group => group[0]); 
 
-      finalItems.sort((a, b) => b.similarity - a.similarity);
+      newItems.sort((a, b) => b.similarity - a.similarity);
+
+      const finalItems = await Promise.all(
+         newItems.map(async (item) => {
+            const store = item.store;
+      
+            // Remove the `embedding` field
+            const { embedding, ...filteredItem } = item;
+      
+            // Call the store API
+            const response = await axios.put('/getStores', { store });
+            const data = await response.json();
+      
+            // Add store data if needed or return the filtered item
+            console.log(data);
+            return { ...filteredItem, storeData: data };
+         })
+      );
       
       res.json(finalItems);
 
