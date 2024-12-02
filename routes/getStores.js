@@ -75,7 +75,7 @@ async function fetchNearbyStores(store, userLocation) {
 }
 
 // Iterates and finds all approved stores in parallel
-async function searchNearbyStores(userLocation, stores) {
+async function searchNearbyStores(userLocation, store) {
   let storeArray = [];
   const promises = stores.map(async (query, index) => {
     const result = await fetchNearbyStores(query, userLocation);
@@ -115,10 +115,10 @@ router.put(`/${parsed.name}`, async (req, res) => {
     return res.status(400).json({ error: 'Location is required' });
   }
 
-  let stores = ['Target', 'Hannaford', 'CVS', 'ShopRite'];
+  let store = req.body.store;
   const coordinates = await fetchCoordinates(location);
   
-  let storeArray = await searchNearbyStores(coordinates, stores);
+  let storeArray = await searchNearbyStores(coordinates, store);
 
   res.json(storeArray);
 });
