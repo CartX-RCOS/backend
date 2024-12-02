@@ -164,24 +164,24 @@ router.put(`/${parsed.name}`, async (req, res) => {
 
       newItems.sort((a, b) => b.similarity - a.similarity);
 
-      const finalItems = await Promise.all(
-         newItems.map(async (item) => {
-            const store = item.store;
+      // const finalItems = await Promise.all(
+      //    newItems.map(async (item) => {
+      //       const store = item.store;
       
-            // Remove the `embedding` field
-            const { embedding, ...filteredItem } = item;
+      //       // Remove the `embedding` field
+      //       const { embedding, ...filteredItem } = item;
       
-            // Call the store API
-            const response = await axios.put('/getStores', { store });
-            const data = await response.json();
+      //       // Call the store API
+      //       const response = await axios.put('/getStores', { store });
+      //       const data = await response.json();
       
-            // Add store data if needed or return the filtered item
-            console.log(data);
-            return { ...filteredItem, storeData: data };
-         })
-      );
+      //       // Add store data if needed or return the filtered item
+      //       console.log(data);
+      //       return { ...filteredItem, storeData: data };
+      //    })
+      // );
       
-      res.json(finalItems);
+      res.json(newItems);
 
    } catch (error) {
       console.error(error);
