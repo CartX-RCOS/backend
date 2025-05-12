@@ -1,4 +1,4 @@
-# 🧠 CartX Backend
+# CartX Backend
 
 This repository powers the backend logic of the CartX platform, handling API services, data processing, and communication between the frontend and data-gathering services.
 
